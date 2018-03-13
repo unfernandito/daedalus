@@ -23,8 +23,8 @@ import           System.Directory (copyFile, createDirectoryIfMissing, doesFileE
 import           System.Environment (lookupEnv)
 import           System.FilePath ((</>), FilePath)
 import           System.FilePath.Glob (glob)
-import           Filesystem.Path.CurrentOS (encodeString)
-import           Turtle (ExitCode (..), echo, proc, procs, which, Managed, with)
+import           Filesystem.Path.CurrentOS (encodeString, decodeString)
+import           Turtle (ExitCode (..), echo, proc, procs, which, Managed, with, chmod, writable)
 import           Turtle.Line (unsafeTextToLine)
 
 import           RewriteLibs (chain)
@@ -98,13 +98,19 @@ makeInstaller cfg = do
   echo "Preparing files ..."
   case icApi cfg of
     "cardano" -> do
-      copyFile "cardano-launcher" (dir </> "cardano-launcher")
-      copyFile "cardano-node" (dir </> "cardano-node")
-      copyFile "wallet-topology.yaml" (dir </> "wallet-topology.yaml")
-      copyFile "configuration.yaml" (dir </> "configuration.yaml")
-      genesisFiles <- glob "*genesis*.json"
+      -- fixme: when DEVOPS-690 adds option parsing, use a
+      -- command-line argument instead of DAEDALUS_BRIDGE var.
+      -- fixme: use Filesystem.Path and Turtle.Prelude functions
+      Just bridge <- lookupEnv "DAEDALUS_BRIDGE"
+      forM ["cardano-launcher", "cardano-node"] $ \f -> do
+        copyFile (bridge </> "bin" </> f) (dir </> f)
+        chmod writable (decodeString $ dir </> f)
+      copyFile (bridge </> "config/configuration.yaml") (dir </> "configuration.yaml")
+      genesisFiles <- glob (bridge </> "config/*genesis*.json")
       procs "cp" (fmap toText (genesisFiles <> [dir])) mempty
-      copyFile "log-config-prod.yaml" (dir </> "log-config-prod.yaml")
+      copyFile (bridge </> "config/log-config-prod.yaml") (dir </> "log-config-prod.yaml")
+
+      copyFile "wallet-topology.yaml" (dir </> "wallet-topology.yaml")
       copyFile "build-certificates-unix.sh" (dir </> "build-certificates-unix.sh")
       copyFile "ca.conf"     (dir </> "ca.conf")
       copyFile "server.conf" (dir </> "server.conf")

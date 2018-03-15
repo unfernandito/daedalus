@@ -2,7 +2,7 @@ module WindowsInstaller
     ( main
     ) where
 
-import           Universum hiding (pass, writeFile)
+import           Universum hiding (pass, writeFile, stdout)
 
 import           Control.Monad (unless)
 import qualified Data.List as L
@@ -21,9 +21,13 @@ import           Development.NSIS (Attrib (IconFile, IconIndex, OName, RebootOK,
 import           Prelude ((!!))
 import           System.Directory (doesFileExist)
 import           System.Environment (lookupEnv)
+import           System.FilePath ((</>))
 import           System.IO (writeFile)
-import           Turtle (ExitCode (..), echo, proc, procs)
+import           Filesystem.Path.CurrentOS (decodeString)
+import           Turtle (ExitCode (..), echo, proc, procs, testfile, stdout, input)
 import           Turtle.Line (unsafeTextToLine)
+import           AppVeyor
+import qualified Codec.Archive.Zip    as Zip
 
 
 daedalusShortcut :: [Attrib]
@@ -187,6 +191,9 @@ main = do
     let fullVersion = version <> ".0"
     writeFile "version.txt" fullVersion
 
+    fetchCardanoSL "."
+    printCardanoBuildInfo "."
+
     echo "Adding permissions manifest to cardano-launcher.exe"
     procs "C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x64\\mt.exe" ["-manifest", "cardano-launcher.exe.manifest", "-outputresource:cardano-launcher.exe;#1"] mempty
 
@@ -203,3 +210,22 @@ main = do
     echo "Generating NSIS installer daedalus-win64-installer.exe"
     procs "C:\\Program Files (x86)\\NSIS\\makensis" ["daedalus.nsi"] mempty
     signFile ("daedalus-win64-" <> fullVersion <> "-installer.exe")
+
+-- | Download and extract the cardano-sl windows build.
+fetchCardanoSL :: FilePath -> IO ()
+fetchCardanoSL dst = do
+  bs <- downloadCardanoSL "../cardano-sl-src.json"
+  let opts = [Zip.OptDestination dst, Zip.OptVerbose]
+  Zip.extractFilesFromArchive opts (Zip.toArchive bs)
+
+printCardanoBuildInfo :: MonadIO io => FilePath -> io ()
+printCardanoBuildInfo dst = do
+  let buildInfo what f = do
+        let f' = decodeString (dst </> f)
+        e <- testfile f'
+        when e $ do
+          echo what
+          stdout (input f')
+  buildInfo "cardano-sl build-id:" "build-id"
+  buildInfo "cardano-sl commit-id:" "commit-id"
+  buildInfo "cardano-sl ci-url:" "ci-url"

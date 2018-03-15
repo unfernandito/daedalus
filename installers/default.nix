@@ -12,6 +12,7 @@ with haskell.lib;
 let
   haskellPackages = haskell.packages.ghc802.override {
     overrides = self: super: {
+      github = self.callPackage ./github.nix {};
     };
   };
 

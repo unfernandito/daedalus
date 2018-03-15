@@ -3,7 +3,7 @@
 , system-filepath, temporary, text, turtle, universum, yaml
 }:
 mkDerivation {
-  pname = "cardano-installer";
+  pname = "daedalus-installer";
   version = "0.1.0.0";
   src = ./.;
   isLibrary = false;
@@ -13,6 +13,6 @@ mkDerivation {
     optparse-applicative split system-filepath temporary text turtle
     universum yaml
   ];
-  description = "Cardano Installer";
+  description = "Daedalus Installer Builder";
   license = stdenv.lib.licenses.mit;
 }

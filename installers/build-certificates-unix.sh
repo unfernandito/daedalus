@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This is an install-time script that generates the CA/server/client key/cert pairs,
 # for front/backend channel security.

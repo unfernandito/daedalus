@@ -100,6 +100,8 @@ export PATH=$HOME/.local/bin:$PATH
 export DAEDALUS_VERSION=${daedalus_version}.${build_id}
 if [ -n "${NIX_SSL_CERT_FILE-}" ]; then export SSL_CERT_FILE=$NIX_SSL_CERT_FILE; fi
 
+ARTIFACT_BUCKET=ci-output-sink
+
 # Build/get cardano bridge which is used by make-installer
 export DAEDALUS_BRIDGE=$(nix-build --no-out-link default.nix -A daedalus-bridge)
 # Note: Printing build-id is required for the iohk-ops find-installers
